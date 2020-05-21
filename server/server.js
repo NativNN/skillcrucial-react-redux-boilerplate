@@ -4,9 +4,26 @@ import path from 'path'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 import sockjs from 'sockjs'
+import axios from 'axios'
 
 import cookieParser from 'cookie-parser'
 import Html from '../client/html'
+
+const { readFile, writeFile, unlink } = require('fs').promises
+
+const saveFile = async (users) => {
+  return writeFile(`${__dirname}/test.json`, JSON.stringify(users), { encoding: 'utf8' })
+}
+
+const read = async () => {
+  return readFile(`${__dirname}/test.json`, { encoding: 'utf8' })
+    .then((data) => JSON.parse(data))
+    .catch(async () => {
+      const { data: users } = await axios('https://jsonplaceholder.typicode.com/users')
+      await saveFile(users)
+      return users
+    })
+}
 
 let connections = []
 
@@ -20,6 +37,45 @@ server.use(bodyParser.urlencoded({ limit: '50mb', extended: true, parameterLimit
 server.use(bodyParser.json({ limit: '50mb', extended: true }))
 
 server.use(cookieParser())
+
+server.get('/api/v1/users/', async (req, res) => {
+  res.set('x-skillcrucial-user', '69bf352f-dfa8-485c-8d26-c33d441a59e2')
+  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER')
+  const users = await read()
+  res.json(users)
+})
+
+server.post('/api/v1/users', async (req, res) => {
+  const users = await read()
+  const newUserBody = req.body
+  const userLen = users[users.length - 1].id
+  newUserBody.id = userLen + 1
+  const newUser = [...users, newUserBody]
+  saveFile(newUser)
+  res.json({ status: 'success', id: newUserBody.id })
+})
+
+server.patch('/api/v1/users/:userId', async (req, res) => {
+  const users = await read()
+  const { userId } = req.params
+  const newUserBody = req.body
+  const newUserArray = users.map((it) => (it.id === +userId ? Object.assign(it, newUserBody) : it))
+  saveFile(newUserArray)
+  res.json({ status: 'success', id: userId })
+})
+
+server.delete('/api/v1/users/:userId', async (req, res) => {
+  const users = await read()
+  const { userId } = req.params
+  users.splice(Number(userId) - 1, 1)
+  saveFile(users)
+  res.json({ status: 'success', id: userId })
+})
+
+server.delete('/api/v1/users', async (req, res) => {
+  unlink(`${__dirname}/test.json`)
+  res.json()
+})
 
 server.use('/api/', (req, res) => {
   res.status(404)
