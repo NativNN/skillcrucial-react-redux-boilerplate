@@ -11,6 +11,12 @@ import Html from '../client/html'
 
 const { readFile, writeFile, unlink } = require('fs').promises
 
+const setHeader = (req, res, next) => {
+  res.set('x-skillcrucial-user', '69bf352f-dfa8-485c-8d26-c33d441a59e2')
+  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER')
+  return next()
+}
+
 const saveFile = async (users) => {
   return writeFile(`${__dirname}/test.json`, JSON.stringify(users), { encoding: 'utf8' })
 }
@@ -38,6 +44,8 @@ server.use(bodyParser.json({ limit: '50mb', extended: true }))
 
 server.use(cookieParser())
 
+server.use(setHeader)
+
 server.get('/api/v1/users/', async (req, res) => {
   const users = await read()
   res.json(users)
@@ -54,8 +62,6 @@ server.post('/api/v1/users', async (req, res) => {
 })
 
 server.patch('/api/v1/users/:userId', async (req, res) => {
-  res.set('x-skillcrucial-user', '69bf352f-dfa8-485c-8d26-c33d441a59e2')
-  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER')
   const users = await read()
   const { userId } = req.params
   const newUserBody = req.body
