@@ -69,7 +69,7 @@ server.delete('/api/v1/users/:userId', async (req, res) => {
   const { userId } = req.params
   users.splice(Number(userId) - 1, 1)
   saveFile(users)
-  res.json({ status: 'success', id: userId })
+  res.json({ status: 'success', id: Number(userId) })
 })
 
 server.delete('/api/v1/users', async (req, res) => {
